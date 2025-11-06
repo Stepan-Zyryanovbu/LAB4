@@ -1,4 +1,4 @@
-name: Deploy site to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   release:
@@ -12,20 +12,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Git user
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-      - name: Clone gh-pages branch
-        run: |
-          git clone --depth 1 --branch gh-pages https://github.com/${{ github.repository }} gh-pages
+      - name: Upload website content
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          branch: gh-pages
+          folder: ./  
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Copy site to versioned folder
         run: |
-          mkdir -p gh-pages/v${{ github.event.release.tag_name }}
-          cp -r * gh-pages/v${{ github.event.release.tag_name }}/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git clone --depth=1 --branch gh-pages https://github.com/${{ github.repository }} gh-pages
           cd gh-pages
+          mkdir -p v${{ github.event.release.tag_name }}
+          cp -r ../* v${{ github.event.release.tag_name }}/
           git add .
-          git commit -m "Deploy version v${{ github.event.release.tag_name }}"
-          git push origin gh-pages
+          git commit -m "Deploy version ${{ github.event.release.tag_name }}"
+          git push
