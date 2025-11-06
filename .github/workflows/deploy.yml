@@ -2,40 +2,22 @@ name: Deploy to GitHub Pages
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+    - name: Build site (if needed)
+      run: echo "No build step needed for статического HTML"
 
-      - name: Upload website content
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        with:
-          branch: gh-pages
-          folder: ./  
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Copy site to versioned folder
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git clone --depth=1 --branch gh-pages https://github.com/${{ github.repository }} gh-pages
-          cd gh-pages
-          mkdir -p v${{ github.event.release.tag_name }}
-          cp -r ../* v${{ github.event.release.tag_name }}/
-          git add .
-          git commit -m "Deploy version ${{ github.event.release.tag_name }}"
-          git push
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_site   # путь к вашей папке с сайтом
+        keep_files: true  # сохраняет прошлые версии
