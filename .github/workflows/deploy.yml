@@ -6,6 +6,7 @@ on:
   push:
     tags:
       - 'v*'
+      - '[0-9]*'   
   workflow_dispatch:
 
 permissions:
@@ -14,33 +15,35 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare site for versioned deploy
+      - name: Prepare site (create v<ver> and raw tag folders)
         shell: bash
         run: |
+
           TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          TAG="${TAG#refs/tags/}"
           echo "Raw tag: $TAG"
 
-          TAG="${TAG#refs/tags/}"
-          TAG_LOWER=$(echo "$TAG" | tr '[:upper:]' '[:lower:]')
-          BASE="${TAG_LOWER#v}"
+          TAG_LOW="$(echo "$TAG" | tr '[:upper:]' '[:lower:]')"   # V2 -> v2
+          BASE="${TAG_LOW#v}"                                     # v1.0.1 -> 1.0.1
 
-          echo "Normalized tag: $BASE"
-          DEST="_site/v${BASE}"
-          echo "→ Папка деплоя: $DEST"
+          rm -rf _site
+          mkdir -p "_site/v${BASE}"
+          # Кладём сайт в /v<версия>/
+          cp -r index.html ru en "_site/v${BASE}/"
 
-          mkdir -p "$DEST"
-          cp -r index.html ru en "$DEST/"
+          mkdir -p "_site/${TAG_LOW}"
+          cp -r index.html ru en "_site/${TAG_LOW}/"
 
+          # alias /latest/
           rm -rf _site/latest
           mkdir -p _site/latest
           cp -r index.html ru en _site/latest/
 
-          echo "Содержимое _site:"
+          echo "Built folders:"
           find _site -maxdepth 2 -type d -print
 
       - name: Deploy to GitHub Pages
