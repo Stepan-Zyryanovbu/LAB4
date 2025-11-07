@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (versioned)
 
 on:
   release:
@@ -11,30 +11,27 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: pages-deploy
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare static site
+      - name: Prepare site for versioned deploy
         shell: bash
         run: |
-          # Получаем тег из события release или из имени тега (push tags)
-          TAG="${{ github.event.release.tag_name }}"
-          if [ -z "$TAG" ]; then TAG="${GITHUB_REF_NAME}"; fi
+          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          echo "Raw tag: $TAG"
 
-          BASE="${TAG#v}"        
+          TAG="${TAG#refs/tags/}"
+          TAG_LOWER=$(echo "$TAG" | tr '[:upper:]' '[:lower:]')
+          BASE="${TAG_LOWER#v}"
+
+          echo "Normalized tag: $BASE"
           DEST="_site/v${BASE}"
-
-          echo "Release tag: $TAG -> folder: $DEST"
+          echo "→ Папка деплоя: $DEST"
 
           mkdir -p "$DEST"
           cp -r index.html ru en "$DEST/"
@@ -42,6 +39,9 @@ jobs:
           rm -rf _site/latest
           mkdir -p _site/latest
           cp -r index.html ru en _site/latest/
+
+          echo "Содержимое _site:"
+          find _site -maxdepth 2 -type d -print
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
