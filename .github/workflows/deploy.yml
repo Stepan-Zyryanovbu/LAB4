@@ -21,17 +21,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare static site
-        shell: bash
-        run: |
-          TAG="${{ github.event.release.tag_name || github.ref_name }}"
-          echo "Release tag: $TAG"
+  shell: bash
+  run: |
+    TAG="${{ github.event.release.tag_name || github.ref_name }}"
+    BASE="${TAG#v}"             # убираем ведущую 'v', если есть
+    DEST="_site/v${BASE}"       # публикуем в /v<число>/
 
-          mkdir -p "_site/v${TAG}"
-          cp -r index.html ru en "_site/v${TAG}/"
+    echo "Release tag: $TAG -> folder: v${BASE}"
 
-          rm -rf _site/latest
-          mkdir -p _site/latest
-          cp -r index.html ru en _site/latest/
+    mkdir -p "$DEST"
+    cp -r index.html ru en "$DEST/"
+
+    rm -rf _site/latest
+    mkdir -p _site/latest
+    cp -r index.html ru en _site/latest/
+
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
