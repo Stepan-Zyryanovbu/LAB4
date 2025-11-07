@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -14,6 +17,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +27,12 @@ jobs:
       - name: Prepare static site
         shell: bash
         run: |
-          TAG="${{ github.event.release.tag_name || github.ref_name }}"
-          BASE="${TAG#v}"             # убираем ведущую "v", если есть
-          DEST="_site/v${BASE}"       # публикуем в /v<номер_тега>/
+          # Получаем тег из события release или из имени тега (push tags)
+          TAG="${{ github.event.release.tag_name }}"
+          if [ -z "$TAG" ]; then TAG="${GITHUB_REF_NAME}"; fi
+
+          BASE="${TAG#v}"        
+          DEST="_site/v${BASE}"
 
           echo "Release tag: $TAG -> folder: $DEST"
 
@@ -35,7 +42,6 @@ jobs:
           rm -rf _site/latest
           mkdir -p _site/latest
           cp -r index.html ru en _site/latest/
-
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
